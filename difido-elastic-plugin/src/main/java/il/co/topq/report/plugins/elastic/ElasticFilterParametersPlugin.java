@@ -71,8 +71,8 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 		elasticPluginController.onExecutionEndedEvent(executionEndedEvent);
 		elasticPluginController.addOrUpdateInElastic(subTests);
 		
-		lastSuccessfulElasticWrite.stop();
-		lastSuccessfulElasticWrite.start();
+//		lastSuccessfulElasticWrite.stop();
+//		lastSuccessfulElasticWrite.start();
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
