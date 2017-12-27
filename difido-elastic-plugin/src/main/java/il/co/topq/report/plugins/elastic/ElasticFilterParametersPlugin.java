@@ -22,6 +22,7 @@ import il.co.topq.difido.model.execution.ScenarioNode;
 import il.co.topq.difido.model.execution.TestNode;
 import il.co.topq.difido.model.test.ReportElement;
 import il.co.topq.difido.model.test.TestDetails;
+import il.co.topq.report.Configuration;
 import il.co.topq.report.business.elastic.ElasticsearchTest;
 import il.co.topq.report.business.execution.ExecutionMetadata;
 import il.co.topq.report.events.ExecutionEndedEvent;
@@ -38,6 +39,7 @@ import il.co.topq.report.plugins.ExecutionPlugin;
  *
  */
 public class ElasticFilterParametersPlugin implements ExecutionPlugin {
+	private static final int TIME_BEFORE_ATTEMPTING_TO_WRITE_TO_ELASTIC_AGAIN = 600;
 	private static final ElasticPluginController elasticPluginController = new ElasticPluginController();
 	private static final String EXECUTION_JS_FILE_PATTERN = "docRoot\\reports\\%s\\tests\\test_%s";
 	private static final Pattern SUB_TEST_NAME_PATTERN = Pattern.compile("subtest:(.*)");
@@ -68,11 +70,25 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 		});
 		
 		ExecutionEndedEvent executionEndedEvent = new ExecutionEndedEvent(metadata);
+		
+		//if elastic is disabled (elastic will automatically be disabled if there's a connection failure)
+		//and a certain amount of time has passed since the last write attempt, we'll attempt to enable it and reset the count
+		//until the next time we attempt to enable it again in case of failure
+		if (!ElasticPluginController.enabled &&
+			 lastSuccessfulElasticWrite.getTaskCount() > 0 &&
+			 lastSuccessfulElasticWrite.getLastTaskInfo().getTimeSeconds() > TIME_BEFORE_ATTEMPTING_TO_WRITE_TO_ELASTIC_AGAIN) {
+			ElasticPluginController.enabled = true;
+			resetWatch();
+		}
 		elasticPluginController.onExecutionEndedEvent(executionEndedEvent);
 		elasticPluginController.addOrUpdateInElastic(subTests);
 		
-//		lastSuccessfulElasticWrite.stop();
-//		lastSuccessfulElasticWrite.start();
+		resetWatch();
+	}
+
+	private void resetWatch() {
+		if (lastSuccessfulElasticWrite.getTaskCount() > 0) lastSuccessfulElasticWrite.stop();
+		lastSuccessfulElasticWrite.start();
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
