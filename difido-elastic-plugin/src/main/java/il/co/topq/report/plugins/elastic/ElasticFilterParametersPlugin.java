@@ -22,7 +22,6 @@ import il.co.topq.difido.model.execution.ScenarioNode;
 import il.co.topq.difido.model.execution.TestNode;
 import il.co.topq.difido.model.test.ReportElement;
 import il.co.topq.difido.model.test.TestDetails;
-import il.co.topq.report.Configuration;
 import il.co.topq.report.business.elastic.ElasticsearchTest;
 import il.co.topq.report.business.execution.ExecutionMetadata;
 import il.co.topq.report.events.ExecutionEndedEvent;
@@ -101,7 +100,7 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 			filterIgnoredValues(properties);
 			
 			String testFolderPath = String.format(EXECUTION_JS_FILE_PATTERN, metadata.getFolderName(), testNode.getUid());
-			testFolderPath = testFolderPath.replaceAll("[\\\\|/]", File.separator);
+			testFolderPath = testFolderPath.replace("/", File.separator).replace("\\", File.separator);
 			File testFolder = new File(testFolderPath);
 			TestDetails testDetails = PersistenceUtils.readTest(testFolder);
 			List<ElasticsearchTest> elasticTests = new LinkedList<>();
