@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.StopWatch;
 
 import il.co.topq.difido.PersistenceUtils;
 import il.co.topq.difido.model.Enums.ElementType;
@@ -40,6 +41,8 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 	private static final ElasticPluginController elasticPluginController = new ElasticPluginController();
 	private static final String EXECUTION_JS_FILE_PATTERN = "docRoot\\reports\\%s\\tests\\test_%s";
 	private static final Pattern SUB_TEST_NAME_PATTERN = Pattern.compile("subtest:(.*)");
+	
+	private static final StopWatch lastSuccessfulElasticWrite = new StopWatch();
 
 	@Override
 	public String getName() {
@@ -67,6 +70,9 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 		ExecutionEndedEvent executionEndedEvent = new ExecutionEndedEvent(metadata);
 		elasticPluginController.onExecutionEndedEvent(executionEndedEvent);
 		elasticPluginController.addOrUpdateInElastic(subTests);
+		
+		lastSuccessfulElasticWrite.stop();
+		lastSuccessfulElasticWrite.start();
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -79,7 +85,7 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 			filterIgnoredValues(properties);
 			
 			String testFolderPath = String.format(EXECUTION_JS_FILE_PATTERN, metadata.getFolderName(), testNode.getUid());
-			testFolderPath.replaceAll("[\\\\|/]", File.separator);
+			testFolderPath = testFolderPath.replaceAll("[\\\\|/]", File.separator);
 			File testFolder = new File(testFolderPath);
 			TestDetails testDetails = PersistenceUtils.readTest(testFolder);
 			List<ElasticsearchTest> elasticTests = new LinkedList<>();
