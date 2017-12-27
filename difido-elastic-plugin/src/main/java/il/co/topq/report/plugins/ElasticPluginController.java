@@ -188,7 +188,6 @@ public class ElasticPluginController {
 		stopWatch.stopAndLog();
 	}
 
-	@EventListener
 	public void onExecutionEndedEvent(ExecutionEndedEvent executionEndedEvent) {
 		if (!enabled) {
 			return;
@@ -310,7 +309,7 @@ public class ElasticPluginController {
 
 	}
 
-	void addOrUpdateInElastic(List<ElasticsearchTest> esTests) {
+	public void addOrUpdateInElastic(List<ElasticsearchTest> esTests) {
 		log.debug("About to add or update " + esTests.size() + " tests in the Elastic");
 		if (null == esTests || esTests.isEmpty()) {
 			return;
@@ -344,7 +343,7 @@ public class ElasticPluginController {
 		return elasticTests;
 	}
 
-	private ElasticsearchTest testNodeToElasticTest(ExecutionMetadata metadata, MachineNode machineNode,
+	public ElasticsearchTest testNodeToElasticTest(ExecutionMetadata metadata, MachineNode machineNode,
 			TestNode testNode) {
 		String timestamp = null;
 		if (testNode.getTimestamp() != null) {
