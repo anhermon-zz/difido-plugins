@@ -1,6 +1,7 @@
 package il.co.topq.report.plugins.elastic;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,9 +81,9 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 			String testFolderPath = String.format(EXECUTION_JS_FILE_PATTERN, metadata.getFolderName(), testNode.getUid());
 			File testFolder = new File(testFolderPath);
 			TestDetails testDetails = PersistenceUtils.readTest(testFolder);
-			Map<String, List<ReportElement>> subTestsMap = splitToSubTests(testDetails.getReportElements());
-			NodeWithChildren parentNode = node.getParent();
 			List<ElasticsearchTest> elasticTests = new LinkedList<>();
+			if (testDetails == null || testDetails.getReportElements() == null) return elasticTests;
+			Map<String, List<ReportElement>> subTestsMap = splitToSubTests(testDetails.getReportElements());
 			subTestsMap.forEach((testName, reportElements) ->  {
 				TestNode subTestNode = TestNode.newInstance(testNode);
 				subTestNode.setDate(testNode.getDate());
@@ -122,6 +123,7 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 		parametersToRemove.forEach(key -> parameters.remove(key));
 	}
 	private Map<String, List<ReportElement>> splitToSubTests(List<ReportElement> reportElements) {
+		if (reportElements == null || reportElements.isEmpty()) return Collections.EMPTY_MAP;
 		Map<String, List<ReportElement>> output = new HashMap<>();
 		List<String> currentTestName = new LinkedList<>();
 		reportElements.forEach(reportElement -> {
