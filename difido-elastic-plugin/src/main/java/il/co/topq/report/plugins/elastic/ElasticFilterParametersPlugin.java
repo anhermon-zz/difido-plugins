@@ -37,7 +37,7 @@ import il.co.topq.report.plugins.ExecutionPlugin;
  *
  */
 public class ElasticFilterParametersPlugin implements ExecutionPlugin {
-	private static final ElasticPluginController esController = new ElasticPluginController();
+	private static final ElasticPluginController elasticPluginController = new ElasticPluginController();
 	private static final String EXECUTION_JS_FILE_PATTERN = "docRoot\\reports\\%s\\tests\\test_%s";
 	private static final Pattern SUB_TEST_NAME_PATTERN = Pattern.compile("subtest:(.*)");
 
@@ -65,8 +65,8 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 		});
 		
 		ExecutionEndedEvent executionEndedEvent = new ExecutionEndedEvent(metadata);
-		esController.onExecutionEndedEvent(executionEndedEvent);
-		esController.addOrUpdateInElastic(subTests);
+		elasticPluginController.onExecutionEndedEvent(executionEndedEvent);
+		elasticPluginController.addOrUpdateInElastic(subTests);
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -79,6 +79,7 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 			filterIgnoredValues(properties);
 			
 			String testFolderPath = String.format(EXECUTION_JS_FILE_PATTERN, metadata.getFolderName(), testNode.getUid());
+			testFolderPath.replaceAll("[\\\\|/]", File.separator);
 			File testFolder = new File(testFolderPath);
 			TestDetails testDetails = PersistenceUtils.readTest(testFolder);
 			List<ElasticsearchTest> elasticTests = new LinkedList<>();
@@ -90,7 +91,7 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 				subTestNode.setName(testName);
 				subTestNode.setUid(UUID.randomUUID().toString());
 				//TODO:extract execution time
-				ElasticsearchTest elasticsearchTest = esController.testNodeToElasticTest(metadata, machine, subTestNode);
+				ElasticsearchTest elasticsearchTest = elasticPluginController.testNodeToElasticTest(metadata, machine, subTestNode);
 				elasticTests.add(elasticsearchTest);
 //				TestDetails subTestDetails = new TestDetails();
 //				subTestDetails.setReportElements(reportElements);
