@@ -9,12 +9,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.StopWatch;
 
 import il.co.topq.difido.PersistenceUtils;
 import il.co.topq.difido.model.Enums.ElementType;
+import il.co.topq.difido.model.Enums.Status;
 import il.co.topq.difido.model.execution.MachineNode;
 import il.co.topq.difido.model.execution.Node;
 import il.co.topq.difido.model.execution.NodeWithChildren;
@@ -132,7 +134,7 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 		} if (node instanceof NodeWithChildren){
 			List<ElasticsearchTest> out = new LinkedList<>();
 			((NodeWithChildren<Node>) node).getChildren().forEach(child -> out.addAll(handleNode(metadata, machine, child)));
-			return out;
+			return mergeTestsWithSameName(out);
 		}
 		return null;
 	}
@@ -177,4 +179,45 @@ public class ElasticFilterParametersPlugin implements ExecutionPlugin {
 	private boolean isParameterFilteredOutByNamingConvention(String key) {
 		return key.toLowerCase().contains("ignore");
 	}
+	private List<ElasticsearchTest> mergeTestsWithSameName(List<ElasticsearchTest> out) {
+		Map<String, ElasticsearchTest> testMap = new HashMap<>();
+		out.forEach(testToAdd -> {
+			if (testMap.containsKey(testToAdd.getName()))
+				testMap.put(testToAdd.getName(), testToAdd);
+			else {
+				ElasticsearchTest existingTest = testMap.get(testToAdd.getName());
+				existingTest.setStatus(worstStatus(existingTest.getStatus(), testToAdd.getStatus()));
+				existingTest.setDuration(existingTest.getDuration() + testToAdd.getDuration());
+			}				
+		});
+		return testMap.values().stream().collect(Collectors.toList());
+	}
+
+	//evaluate the worse status between 2 statuses, IE: if we have success and a failure, return failure
+	private String worstStatus(String status, String status2) {
+		if(StringUtils.isEmpty(status) && StringUtils.isEmpty(status2)) return "";
+		if (StringUtils.isEmpty(status)) return status2;
+		if (StringUtils.isEmpty(status2)) return status;
+		if (status.equalsIgnoreCase(status2)) return status;
+		return intToStatus(Math.max(statusToInt(status), statusToInt(status2)));
+	}
+
+	//convert status string to int by severity (success is the lowest, error the higest)
+	private static final int statusToInt(String status) {
+		if (status.equalsIgnoreCase(Status.success.toString())) return 0;
+		if (status.equalsIgnoreCase(Status.warning.toString())) return 1;
+		if (status.equalsIgnoreCase(Status.failure.toString())) return 2;
+		if (status.equalsIgnoreCase(Status.error.toString()))   return 3;
+		return -1;
+	}
+	
+	//convert status severity int to status string
+	private static final String intToStatus(int statusInt) {
+		if (statusInt == 0 ) return Status.success.toString();
+		if (statusInt == 1 ) return Status.warning.toString();
+		if (statusInt == 2 ) return Status.failure.toString();
+		if (statusInt == 3 ) return Status.error.toString();
+		return "none";
+	}
+
 }
